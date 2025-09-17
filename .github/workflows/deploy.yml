@@ -1,4 +1,4 @@
-name: Deploy ITops App to EC2
+name: Deploy Backend & Frontend to EC2
 
 on:
   push:
@@ -10,26 +10,112 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      # -------------------------------
+      # Step 1: Checkout code
+      # -------------------------------
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      # -------------------------------
+      # Step 2: Configure AWS credentials
+      # -------------------------------
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
         with:
-          node-version: '18' # or '20' if needed
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Install dependencies
-        run: npm install
+      # -------------------------------
+      # Step 3: Generate configuration.py from secret
+      # -------------------------------
+      - name: Create configuration.py
+        run: |
+          mkdir -p Backend/project/llm_app
+          echo "${{ secrets.configuration }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
 
-      - name: Build project
-        run: npm run build
+      # -------------------------------
+      # Step 4: Delete old ECR images (backend)
+      # -------------------------------
+      - name: Delete old backend image from ECR
+        run: |
+          REPO_NAME=backend
+          IMAGES=$(aws ecr list-images --repository-name $REPO_NAME --query 'imageIds[*]' --output json)
+          if [ "$IMAGES" != "[]" ]; then
+            echo "$IMAGES" > images.json
+            aws ecr batch-delete-image --repository-name $REPO_NAME --image-ids file://images.json
+          fi
 
-      - name: Deploy to EC2 via SSH
-        uses: easingthemes/ssh-deploy@v2.1.4
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_KEY }}
-          REMOTE_HOST: ${{ secrets.DEPLOY_HOST }}
-          REMOTE_USER: ${{ secrets.DEPLOY_USER }}
-          REMOTE_PORT: ${{ secrets.DEPLOY_PORT }}
-          SOURCE: "dist/"
-          TARGET: ${{ secrets.DEPLOY_TARGET }}
+      # -------------------------------
+      # Step 5: Delete old ECR images (frontend)
+      # -------------------------------
+      - name: Delete old frontend image from ECR
+        run: |
+          REPO_NAME=frontend
+          IMAGES=$(aws ecr list-images --repository-name $REPO_NAME --query 'imageIds[*]' --output json)
+          if [ "$IMAGES" != "[]" ]; then
+            echo "$IMAGES" > images.json
+            aws ecr batch-delete-image --repository-name $REPO_NAME --image-ids file://images.json
+          fi
+
+      # -------------------------------
+      # Step 6: Login to ECR
+      # -------------------------------
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # -------------------------------
+      # Step 7: Build & Push Backend Docker Image
+      # -------------------------------
+      - name: Build & Push Backend Docker Image
+        run: |
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend:latest
+          docker build -t $IMAGE_URI Backend/project/llm_app
+          docker push $IMAGE_URI
+
+      # -------------------------------
+      # Step 8: Build & Push Frontend Docker Image
+      # -------------------------------
+      - name: Build & Push Frontend Docker Image
+        run: |
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend:latest
+          docker build -t $IMAGE_URI Backend/frontend
+          docker push $IMAGE_URI
+
+      # -------------------------------
+      # Step 9: Deploy containers on EC2
+      # -------------------------------
+      - name: Deploy to EC2
+        run: |
+          echo "${{ secrets.EC2_KEY }}" > ec2_key.pem
+          chmod 600 ec2_key.pem
+          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            # Install Docker if not installed
+            if ! command -v docker &> /dev/null
+            then
+              echo "Installing Docker..."
+              sudo yum update -y || sudo apt-get update -y
+              if [ -x "$(command -v yum)" ]; then
+                sudo amazon-linux-extras install docker -y
+              else
+                sudo apt-get install docker.io -y
+              fi
+              sudo service docker start
+              sudo usermod -a -G docker $USER
+            fi
+
+            # Deploy backend
+            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend:latest
+            docker stop backend || true
+            docker rm backend || true
+            docker run -d --name backend -p 8000:8000 \
+              -e VAULT_TOKEN="${{ secrets.vault_token }}" \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend:latest
+
+            # Deploy frontend
+            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend:latest
+            docker stop frontend || true
+            docker rm frontend || true
+            docker run -d --name frontend -p 80:80 \
+              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend:latest
+          EOF
