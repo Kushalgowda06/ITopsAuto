@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./Backend/project/llm_app
+      dockerfile: Dockerfile
+    container_name: backend
+    ports:
+      - "8000:8000"
+    environment:
+      VAULT_TOKEN: ${VAULT_TOKEN}
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./Backend/project/llm_app/configuration.py:/app/configuration.py
+
+  frontend:
+    build:
+      context: ./Backend/frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "80:80"
+    environment:
+      REACT_APP_API_URL: ${REACT_APP_API_URL}
