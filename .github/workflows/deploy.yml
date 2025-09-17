@@ -13,7 +13,7 @@ jobs:
       # -------------------------------
       # Step 1: Checkout code
       # -------------------------------
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
       # -------------------------------
@@ -24,66 +24,54 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: us-west-1
 
       # -------------------------------
-      # Step 3: Generate configuration.py from secret
+      # Step 3: Create configuration.py from secret
       # -------------------------------
-      - name: Create configuration.py
+      - name: Generate configuration.py
         run: |
           mkdir -p Backend/project/llm_app
           echo "${{ secrets.configuration }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
 
       # -------------------------------
-      # Step 4: Delete old ECR images (backend)
+      # Step 4: Ensure ECR repositories exist
       # -------------------------------
-      - name: Delete old backend image from ECR
+      - name: Ensure ECR repositories exist
         run: |
-          REPO_NAME=backend
-          IMAGES=$(aws ecr list-images --repository-name $REPO_NAME --query 'imageIds[*]' --output json)
-          if [ "$IMAGES" != "[]" ]; then
-            echo "$IMAGES" > images.json
-            aws ecr batch-delete-image --repository-name $REPO_NAME --image-ids file://images.json
-          fi
+          for REPO in itopsbackend itopsfrontend; do
+            aws ecr describe-repositories --repository-names $REPO || \
+            aws ecr create-repository --repository-name $REPO
+          done
 
       # -------------------------------
-      # Step 5: Delete old ECR images (frontend)
+      # Step 5: Login to ECR
       # -------------------------------
-      - name: Delete old frontend image from ECR
-        run: |
-          REPO_NAME=frontend
-          IMAGES=$(aws ecr list-images --repository-name $REPO_NAME --query 'imageIds[*]' --output json)
-          if [ "$IMAGES" != "[]" ]; then
-            echo "$IMAGES" > images.json
-            aws ecr batch-delete-image --repository-name $REPO_NAME --image-ids file://images.json
-          fi
-
-      # -------------------------------
-      # Step 6: Login to ECR
-      # -------------------------------
-      - name: Login to ECR
+      - name: Login to AWS ECR
         uses: aws-actions/amazon-ecr-login@v1
 
       # -------------------------------
-      # Step 7: Build & Push Backend Docker Image
+      # Step 6: Build & Push Backend Docker Image
       # -------------------------------
       - name: Build & Push Backend Docker Image
         run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend:latest
-          docker build -t $IMAGE_URI Backend/project/llm_app
+          IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
+          docker build -t backend Backend/project/llm_app
+          docker tag backend:latest $IMAGE_URI
           docker push $IMAGE_URI
 
       # -------------------------------
-      # Step 8: Build & Push Frontend Docker Image
+      # Step 7: Build & Push Frontend Docker Image
       # -------------------------------
       - name: Build & Push Frontend Docker Image
         run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend:latest
-          docker build -t $IMAGE_URI Backend/frontend
+          IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
+          docker build -t frontend Backend/frontend
+          docker tag frontend:latest $IMAGE_URI
           docker push $IMAGE_URI
 
       # -------------------------------
-      # Step 9: Deploy containers on EC2
+      # Step 8: Deploy containers on EC2
       # -------------------------------
       - name: Deploy to EC2
         run: |
@@ -91,8 +79,7 @@ jobs:
           chmod 600 ec2_key.pem
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             # Install Docker if not installed
-            if ! command -v docker &> /dev/null
-            then
+            if ! command -v docker &> /dev/null; then
               echo "Installing Docker..."
               sudo yum update -y || sudo apt-get update -y
               if [ -x "$(command -v yum)" ]; then
@@ -104,18 +91,18 @@ jobs:
               sudo usermod -a -G docker $USER
             fi
 
-            # Deploy backend
-            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend:latest
+            # Deploy backend container
+            docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
             docker stop backend || true
             docker rm backend || true
             docker run -d --name backend -p 8000:8000 \
               -e VAULT_TOKEN="${{ secrets.vault_token }}" \
-              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/backend:latest
+              361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
 
-            # Deploy frontend
-            docker pull ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend:latest
+            # Deploy frontend container
+            docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
             docker stop frontend || true
             docker rm frontend || true
             docker run -d --name frontend -p 80:80 \
-              ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/frontend:latest
+              361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
           EOF
