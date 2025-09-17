@@ -1,0 +1,22 @@
+{
+        "vault_url": "http://172.31.6.97:8200/",
+        "snow_tag": "Platform_SNOW",
+        "snow_url": "https://cisicmpengineering1.service-now.com",
+	"modules": {
+		"Tech Buddy": 1,
+		"Change Assist": 1,
+		"Problem Assist": 1,
+		"Analytics AI": 1,
+		"User Assist": 1,
+		"Call Audit": 1,
+		"Ticket Audit": 1,
+		"Voice AI": 1,
+		"Recruit Assist": 1,
+		"Workflow Test Tool": 1
+	},
+    "pg_db_host": "172.31.9.30",
+	"pg_db_name": "cfs_problem_tickets",
+	"KE_category_name":"Known Error",
+	"kb_similarity_threshold_score": 0.2
+
+}

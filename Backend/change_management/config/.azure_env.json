@@ -1,0 +1,5 @@
+{
+	"AZURE_OPENAI_ENDPOINT":"https://aiinfusedterraformmodel.cognitiveservices.azure.com/",
+	"AZURE_OPENAI_API_KEY": "0911999a1afe4ccdaa361cb2c801ee11",
+	"OPENAI_API_VERSION": "2024-08-01-preview"
+}
