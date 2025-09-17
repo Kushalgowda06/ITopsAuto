@@ -1,3 +1,5 @@
 Backend/model/model.safetensors
 Backend/model/model.safetensors
 Backend/change_management/model/model.safetensors
+Backend/config/.vault_token
+Backend/project/llm_app/configuration.py
