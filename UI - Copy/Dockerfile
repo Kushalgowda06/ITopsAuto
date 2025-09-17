@@ -4,11 +4,13 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Copy package files and install dependencies
-COPY package.json package-lock.json ./
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm install
 
-# Copy source code and build
-COPY . .
+# Copy frontend source code
+COPY frontend/. .
+
+# Build the frontend
 RUN npm run build
 
 # Production stage
