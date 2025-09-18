@@ -45,11 +45,12 @@ jobs:
           done
 
       # -------------------------------
-      # Step 5: Login to ECR
+      # Step 5: Login to AWS ECR
       # -------------------------------
       - name: Login to AWS ECR
         run: |
-          aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
+          aws ecr get-login-password --region us-west-1 | \
+          docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
 
       # -------------------------------
       # Step 6: Build & Push Backend Docker Image
@@ -67,7 +68,7 @@ jobs:
       - name: Build & Push Frontend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-          docker build -t frontend -f UI_Copy/Dockerfile UI_Copy
+          docker build -t frontend -f UI_Copy/Dockerfile UI_Copy/NewKnowledgeAssist
           docker tag frontend:latest $IMAGE_URI
           docker push $IMAGE_URI
 
@@ -92,23 +93,19 @@ jobs:
               sudo usermod -a -G docker $USER
             fi
 
-            # -------------------------------
-            # Backend container
-            # -------------------------------
-            docker stop backend 2>/dev/null || true
-            docker rm backend 2>/dev/null || true
+            # Stop and remove any existing containers
+            docker stop backend || true
+            docker rm backend || true
+            docker stop frontend || true
+            docker rm frontend || true
+
+            # Deploy backend container
             docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
             docker run -d --name backend -p 8000:8000 \
               -e VAULT_TOKEN="${{ secrets.VAULT_TOKEN }}" \
               361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
 
-            # -------------------------------
-            # Frontend container
-            # -------------------------------
-            docker stop frontend 2>/dev/null || true
-            docker rm frontend 2>/dev/null || true
-            # Kill any process using port 80 to avoid conflict
-            sudo fuser -k 80/tcp || true
+            # Deploy frontend container
             docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
             docker run -d --name frontend -p 80:80 \
               361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
