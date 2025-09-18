@@ -1,18 +1,70 @@
-version: "3.9"
+name: CI/CD
 
-services:
-  backend:
-    image: 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
-    container_name: backend
-    ports:
-      - "8000:8000"
-    environment:
-      VAULT_TOKEN: "${VAULT_TOKEN}"
-    restart: unless-stopped
+on:
+  push:
+    branches:
+      - main
 
-  frontend:
-    image: 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-    container_name: frontend
-    ports:
-      - "80:80"
-    restart: unless-stopped
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      ECR_REGION: us-west-1
+      ECR_ACCOUNT: 361568250748
+      EC2_USER: ubuntu
+      EC2_HOST: ${{ secrets.EC2_HOST }}  # Public IP or DNS of EC2
+      EC2_KEY: ${{ secrets.EC2_KEY }}    # Private key stored as GitHub secret
+      VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          region: ${{ env.ECR_REGION }}
+
+      - name: Remove old local Docker images
+        run: |
+          docker container prune -f
+          docker image prune -af
+
+      - name: Build and push backend
+        run: |
+          docker build -t ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsbackend:latest ./Backend
+          docker push ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsbackend:latest
+
+      - name: Build and push frontend
+        run: |
+          docker build -t ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsfrontend:latest ./UI_Copy/NewKnowledgeAssist
+          docker push ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsfrontend:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_KEY }}
+          script: |
+            # Clean old containers
+            docker container prune -f
+            docker image prune -af
+
+            # Pull latest images
+            docker pull ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsbackend:latest
+            docker pull ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsfrontend:latest
+
+            # Stop old containers if running
+            docker stop backend || true
+            docker rm backend || true
+            docker stop frontend || true
+            docker rm frontend || true
+
+            # Run new containers
+            docker run -d --name backend -p 8000:8000 -e VAULT_TOKEN="${VAULT_TOKEN}" ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsbackend:latest
+            docker run -d --name frontend -p 80:80 ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsfrontend:latest
