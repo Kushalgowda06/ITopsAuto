@@ -33,7 +33,6 @@ jobs:
         run: |
           mkdir -p Backend/project/llm_app
           echo "${{ secrets.CONFIGURATION }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
-
       # -------------------------------
       # Step 4: Ensure ECR repositories exist
       # -------------------------------
@@ -43,7 +42,6 @@ jobs:
             aws ecr describe-repositories --repository-names $REPO || \
             aws ecr create-repository --repository-name $REPO
           done
-
       # -------------------------------
       # Step 5: Login to AWS ECR
       # -------------------------------
@@ -51,7 +49,6 @@ jobs:
         run: |
           aws ecr get-login-password --region us-west-1 | \
           docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
-
       # -------------------------------
       # Step 6: Build & Push Backend Docker Image
       # -------------------------------
@@ -61,43 +58,46 @@ jobs:
           docker build -t backend -f Backend/Dockerfile Backend
           docker tag backend:latest $IMAGE_URI
           docker push $IMAGE_URI
-
       # -------------------------------
       # Step 7: Build & Push Frontend Docker Image
       # -------------------------------
       - name: Build & Push Frontend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-          docker build -t frontend -f "UI_Copy/NewKnowledgeAssist/Dockerfile" "UI_Copy/NewKnowledgeAssist"
+          docker build -t frontend -f "UI_Copy/Dockerfile" "UI_Copy/NewKnowledgeAssist"
           docker tag frontend:latest $IMAGE_URI
           docker push $IMAGE_URI
-
       # -------------------------------
       # Step 8: Deploy containers on EC2
       # -------------------------------
       - name: Deploy to EC2
-        env:
-          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
         run: |
           echo "${{ secrets.EC2_KEY }}" > ec2_key.pem
           chmod 600 ec2_key.pem
-          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} 'bash -s' <<'EOF'
-            #!/bin/bash
-
-            # Stop and remove old containers
-            docker ps -q --filter "name=backend" | xargs -r docker rm -f
-            docker ps -q --filter "name=frontend" | xargs -r docker rm -f
-
-            # Pull latest images
+          ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            # Install Docker if not installed
+            if ! command -v docker &> /dev/null; then
+              echo "Installing Docker..."
+              if [ -x "$(command -v yum)" ]; then
+                sudo amazon-linux-extras install docker -y
+              else
+                sudo apt-get update -y
+                sudo apt-get install docker.io -y
+              fi
+              sudo service docker start
+              sudo usermod -a -G docker $USER
+            fi
+            # Remove old containers
+            docker ps -a -q --filter "name=backend" | xargs -r docker rm -f
+            docker ps -a -q --filter "name=frontend" | xargs -r docker rm -f
+            sleep 3
+            # Deploy backend container
             docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
-            docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-
-            # Deploy backend
             docker run -d --name backend -p 8000:8000 \
-              -e VAULT_TOKEN="$VAULT_TOKEN" \
+              -e VAULT_TOKEN="${{ secrets.VAULT_TOKEN }}" \
               361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
-
-            # Deploy frontend
+            # Deploy frontend container
+            docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
             docker run -d --name frontend -p 80:80 \
               361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-EOF
+          EOF
