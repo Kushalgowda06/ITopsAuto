@@ -10,15 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # -------------------------------
-      # Step 1: Checkout code
-      # -------------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # -------------------------------
-      # Step 2: Configure AWS credentials
-      # -------------------------------
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -26,17 +20,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-1
 
-      # -------------------------------
-      # Step 3: Generate configuration.py from secret
-      # -------------------------------
       - name: Generate configuration.py
         run: |
           mkdir -p Backend/project/llm_app
           echo "${{ secrets.CONFIGURATION }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
 
-      # -------------------------------
-      # Step 4: Ensure ECR repositories exist
-      # -------------------------------
       - name: Ensure ECR repositories exist
         run: |
           for REPO in itopsbackend itopsfrontend; do
@@ -44,17 +32,11 @@ jobs:
             aws ecr create-repository --repository-name $REPO
           done
 
-      # -------------------------------
-      # Step 5: Login to AWS ECR
-      # -------------------------------
       - name: Login to AWS ECR
         run: |
           aws ecr get-login-password --region us-west-1 | \
           docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
 
-      # -------------------------------
-      # Step 6: Build & Push Backend Docker Image
-      # -------------------------------
       - name: Build & Push Backend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
@@ -62,9 +44,6 @@ jobs:
           docker tag backend:latest $IMAGE_URI
           docker push $IMAGE_URI
 
-      # -------------------------------
-      # Step 7: Build & Push Frontend Docker Image
-      # -------------------------------
       - name: Build & Push Frontend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
@@ -72,52 +51,31 @@ jobs:
           docker tag frontend:latest $IMAGE_URI
           docker push $IMAGE_URI
 
-      # -------------------------------
-      # Step 8: Deploy containers on EC2
-      # -------------------------------
       - name: Deploy to EC2
         run: |
           echo "${{ secrets.EC2_KEY }}" > ec2_key.pem
           chmod 600 ec2_key.pem
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-            # -------------------------------
-            # Install Docker if not installed
-            # -------------------------------
+            # Install Docker if missing
             if ! command -v docker &> /dev/null; then
-              echo "Installing Docker..."
-              if [ -x "$(command -v yum)" ]; then
-                sudo amazon-linux-extras install docker -y
-              else
-                sudo apt-get update -y
-                sudo apt-get install docker.io -y
-              fi
+              sudo apt-get update -y
+              sudo apt-get install docker.io -y
               sudo service docker start
               sudo usermod -a -G docker $USER
             fi
 
-            # -------------------------------
-            # Remove old containers
-            # -------------------------------
+            # Remove old containers and images
             docker ps -a -q --filter "name=backend" | xargs -r docker rm -f
             docker ps -a -q --filter "name=frontend" | xargs -r docker rm -f
-
-            # -------------------------------
-            # Remove unused images to free space
-            # -------------------------------
             docker images -f "dangling=true" -q | xargs -r docker rmi -f
             docker system prune -af
 
-            # -------------------------------
-            # Deploy backend container
-            # -------------------------------
+            # Run containers
             docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
             docker run -d --name backend -p 8000:8000 \
               -e VAULT_TOKEN="${{ secrets.VAULT_TOKEN }}" \
               361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
 
-            # -------------------------------
-            # Deploy frontend container
-            # -------------------------------
             docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
             docker run -d --name frontend -p 80:80 \
               361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
