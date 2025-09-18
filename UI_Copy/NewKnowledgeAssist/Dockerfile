@@ -1,40 +1,21 @@
-# -----------------------------
-# Base image
-# -----------------------------
+# Frontend Dockerfile
 FROM node:20-alpine
 
-# -----------------------------
 # Set working directory
-# -----------------------------
 WORKDIR /app
 
-# -----------------------------
 # Copy package files and install dependencies
-# -----------------------------
-COPY package*.json ./
-RUN npm install --legacy-peer-deps
+COPY package.json package-lock.json ./
+RUN npm install
 
-# -----------------------------
-# Copy frontend source code
-# -----------------------------
+# Copy source code
 COPY . .
 
-# -----------------------------
-# Build the React app
-# -----------------------------
+# Build React app
 RUN npm run build
 
-# -----------------------------
-# Install serve to run production build
-# -----------------------------
-RUN npm install -g serve
-
-# -----------------------------
-# Expose frontend port
-# -----------------------------
+# Serve using Caddy (or Nginx)
+FROM caddy:2.8.0-alpine
+COPY --from=0 /app/build /usr/share/caddy
 EXPOSE 80
-
-# -----------------------------
-# Start frontend server
-# -----------------------------
-CMD ["serve", "-s", "build", "-l", "80"]
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
