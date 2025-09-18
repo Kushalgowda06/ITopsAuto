@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Automated Deployment
 
 on:
   push:
@@ -11,83 +11,51 @@ jobs:
 
     env:
       AWS_REGION: us-west-1
-      ECR_BACKEND_REPO: 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend
-      ECR_FRONTEND_REPO: 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend
-      EC2_USER: ubuntu
-      EC2_HOST: ${{ secrets.EC2_HOST }}   # Public IP or hostname of your EC2
-      SSH_KEY: ${{ secrets.EC2_SSH_KEY }} # Private key stored in GitHub Secrets
+      ECR_ACCOUNT_URL: 361568250748.dkr.ecr.us-west-1.amazonaws.com
+      FRONTEND_IMAGE: itopsfrontend
+      BACKEND_IMAGE: itopsbackend
 
     steps:
-      # -------------------------------
-      # Checkout repo
-      # -------------------------------
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # -------------------------------
-      # Configure AWS CLI
-      # -------------------------------
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # -------------------------------
-      # Login to AWS ECR
-      # -------------------------------
-      - name: Login to ECR
+      - name: Login to Amazon ECR
         run: |
           aws ecr get-login-password --region $AWS_REGION | \
-            docker login --username AWS --password-stdin $ECR_BACKEND_REPO
-          aws ecr get-login-password --region $AWS_REGION | \
-            docker login --username AWS --password-stdin $ECR_FRONTEND_REPO
+            docker login --username AWS --password-stdin $ECR_ACCOUNT_URL
 
-      # -------------------------------
-      # Build Docker images
-      # -------------------------------
-      - name: Build backend image
+      - name: Clean old containers and images
         run: |
-          docker build -t itopsbackend:latest Backend/
-          docker tag itopsbackend:latest $ECR_BACKEND_REPO:latest
+          docker ps -a -q | xargs -r docker rm -f
+          docker images -a -q | xargs -r docker rmi -f
 
-      - name: Build frontend image
+      - name: Build and push Backend image
         run: |
-          docker build -t itopsfrontend:latest UI_Copy/
-          docker tag itopsfrontend:latest $ECR_FRONTEND_REPO:latest
+          docker build -t $BACKEND_IMAGE ./Backend
+          docker tag $BACKEND_IMAGE:latest $ECR_ACCOUNT_URL/$BACKEND_IMAGE:latest
+          docker push $ECR_ACCOUNT_URL/$BACKEND_IMAGE:latest
 
-      # -------------------------------
-      # Push Docker images to ECR
-      # -------------------------------
-      - name: Push backend image
-        run: docker push $ECR_BACKEND_REPO:latest
+      - name: Build and push Frontend image
+        run: |
+          docker build -t $FRONTEND_IMAGE ./UI_Copy
+          docker tag $FRONTEND_IMAGE:latest $ECR_ACCOUNT_URL/$FRONTEND_IMAGE:latest
+          docker push $ECR_ACCOUNT_URL/$FRONTEND_IMAGE:latest
 
-      - name: Push frontend image
-        run: docker push $ECR_FRONTEND_REPO:latest
-
-      # -------------------------------
-      # Deploy to EC2
-      # -------------------------------
       - name: Deploy on EC2
-        uses: appleboy/ssh-action@v0.1.8
+        uses: appleboy/ssh-action@v0.1.7
         with:
-          host: ${{ env.EC2_HOST }}
-          username: ${{ env.EC2_USER }}
-          key: ${{ env.SSH_KEY }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
           script: |
-            # Clean up old containers and images
-            docker rm -f backend frontend || true
-            docker system prune -af || true
-
-            # Pull latest images
-            docker pull $ECR_BACKEND_REPO:latest
-            docker pull $ECR_FRONTEND_REPO:latest
-
-            # Run backend container
-            docker run -d --name backend -p 8000:8000 \
-              -e VAULT_TOKEN="${{ secrets.VAULT_TOKEN }}" \
-              $ECR_BACKEND_REPO:latest
-
-            # Run frontend container
-            docker run -d --name frontend -p 80:80 $ECR_FRONTEND_REPO:latest
+            cd ~/deployment
+            docker-compose down
+            docker-compose pull
+            docker-compose up -d
