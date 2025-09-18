@@ -1,32 +1,18 @@
-# Use official Python slim image
+# Backend Dockerfile
 FROM python:3.12-slim
 
-# Set working directory
+# Set work directory inside container
 WORKDIR /app
 
-# Install system dependencies needed for Python packages
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-        build-essential \
-        libpq-dev \
-        gcc \
-        curl \
-        wget \
-        git \
-        && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements first for caching
+# Copy requirements and install dependencies first (cache)
 COPY requirements.txt ./
-
-# Upgrade pip and install Python dependencies
-RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend source code
+# Copy the entire backend source code
 COPY . .
 
-# Expose the backend port
+# Expose port
 EXPOSE 8000
 
-# Start backend server
-CMD ["python", "fastapi_main.py"]
+# Command to run FastAPI backend
+CMD ["uvicorn", "fastapi_main:app", "--host", "0.0.0.0", "--port", "8000"]
