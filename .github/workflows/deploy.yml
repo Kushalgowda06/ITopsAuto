@@ -1,4 +1,4 @@
-name: Automated Deployment
+name: CI/CD
 
 on:
   push:
@@ -6,56 +6,65 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     env:
-      AWS_REGION: us-west-1
-      ECR_ACCOUNT_URL: 361568250748.dkr.ecr.us-west-1.amazonaws.com
-      FRONTEND_IMAGE: itopsfrontend
-      BACKEND_IMAGE: itopsbackend
+      ECR_REGION: us-west-1
+      ECR_ACCOUNT: 361568250748
+      EC2_USER: ubuntu
+      EC2_HOST: ${{ secrets.EC2_HOST }}  # Public IP or DNS of EC2
+      EC2_KEY: ${{ secrets.EC2_KEY }}    # Private key stored as GitHub secret
+      VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
       - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region $AWS_REGION | \
-            docker login --username AWS --password-stdin $ECR_ACCOUNT_URL
-
-      - name: Clean old containers and images
-        run: |
-          docker ps -a -q | xargs -r docker rm -f
-          docker images -a -q | xargs -r docker rmi -f
-
-      - name: Build and push Backend image
-        run: |
-          docker build -t $BACKEND_IMAGE ./Backend
-          docker tag $BACKEND_IMAGE:latest $ECR_ACCOUNT_URL/$BACKEND_IMAGE:latest
-          docker push $ECR_ACCOUNT_URL/$BACKEND_IMAGE:latest
-
-      - name: Build and push Frontend image
-        run: |
-          docker build -t $FRONTEND_IMAGE ./UI_Copy
-          docker tag $FRONTEND_IMAGE:latest $ECR_ACCOUNT_URL/$FRONTEND_IMAGE:latest
-          docker push $ECR_ACCOUNT_URL/$FRONTEND_IMAGE:latest
-
-      - name: Deploy on EC2
-        uses: appleboy/ssh-action@v0.1.7
+        uses: aws-actions/amazon-ecr-login@v1
         with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ubuntu
-          key: ${{ secrets.EC2_KEY }}
+          region: ${{ env.ECR_REGION }}
+
+      - name: Remove old local Docker images
+        run: |
+          docker container prune -f
+          docker image prune -af
+
+      - name: Build and push backend
+        run: |
+          docker build -t ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsbackend:latest ./Backend
+          docker push ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsbackend:latest
+
+      - name: Build and push frontend
+        run: |
+          docker build -t ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsfrontend:latest ./UI_Copy/NewKnowledgeAssist
+          docker push ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsfrontend:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.9
+        with:
+          host: ${{ env.EC2_HOST }}
+          username: ${{ env.EC2_USER }}
+          key: ${{ env.EC2_KEY }}
           script: |
-            cd ~/deployment
-            docker-compose down
-            docker-compose pull
-            docker-compose up -d
+            # Clean old containers
+            docker container prune -f
+            docker image prune -af
+
+            # Pull latest images
+            docker pull ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsbackend:latest
+            docker pull ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsfrontend:latest
+
+            # Stop old containers if running
+            docker stop backend || true
+            docker rm backend || true
+            docker stop frontend || true
+            docker rm frontend || true
+
+            # Run new containers
+            docker run -d --name backend -p 8000:8000 -e VAULT_TOKEN="${VAULT_TOKEN}" ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsbackend:latest
+            docker run -d --name frontend -p 80:80 ${{ env.ECR_ACCOUNT }}.dkr.ecr.${{ env.ECR_REGION }}.amazonaws.com/itopsfrontend:latest
