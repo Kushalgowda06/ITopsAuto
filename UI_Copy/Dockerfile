@@ -8,7 +8,7 @@ COPY "UI_Copy/frontend/package.json" "UI_Copy/frontend/package-lock.json" ./
 RUN npm install
 
 # Copy frontend source code
-COPY "UI - Copy/frontend/." ./
+COPY "UI_Copy/frontend/." ./
 
 # Build the frontend
 RUN npm run build
