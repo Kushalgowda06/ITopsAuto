@@ -11,7 +11,7 @@ jobs:
 
     steps:
       # -------------------------------
-      # Step 1: Checkout repository
+      # Step 1: Checkout code
       # -------------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -32,7 +32,7 @@ jobs:
       - name: Generate configuration.py
         run: |
           mkdir -p Backend/project/llm_app
-          echo "${{ secrets.CONFIGURATION }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
+          echo "${{ secrets.configuration }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
 
       # -------------------------------
       # Step 4: Ensure ECR repositories exist
@@ -45,39 +45,38 @@ jobs:
           done
 
       # -------------------------------
-      # Step 5: Login to ECR
-      # -------------------------------
-      - name: Login to AWS ECR
-        uses: aws-actions/amazon-ecr-login@v1
-
-      # -------------------------------
-      # Step 6: Build & Push Backend Docker Image
+      # Step 5: Build & Push Backend Docker Image
       # -------------------------------
       - name: Build & Push Backend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
           docker build -t backend -f Backend/Dockerfile Backend
           docker tag backend:latest $IMAGE_URI
+          aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
           docker push $IMAGE_URI
 
       # -------------------------------
-      # Step 7: Build & Push Frontend Docker Image
+      # Step 6: Build & Push Frontend Docker Image
       # -------------------------------
       - name: Build & Push Frontend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-          docker build -t frontend -f "UI_Copy/NewKnowledgeAssist/Dockerfile" "UI_Copy/NewKnowledgeAssist"
+          docker build -t frontend -f "UI_Copy/Dockerfile" "UI_Copy/NewKnowledgeAssist"
           docker tag frontend:latest $IMAGE_URI
+          aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
           docker push $IMAGE_URI
 
       # -------------------------------
-      # Step 8: Deploy containers on EC2
+      # Step 7: Deploy containers on EC2
       # -------------------------------
       - name: Deploy to EC2
         run: |
           echo "${{ secrets.EC2_KEY }}" > ec2_key.pem
           chmod 600 ec2_key.pem
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+            # Login to ECR
+            aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
+
             # Install Docker if not installed
             if ! command -v docker &> /dev/null; then
               echo "Installing Docker..."
