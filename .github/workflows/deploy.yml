@@ -66,7 +66,7 @@ jobs:
       - name: Build & Push Frontend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-          docker build -t frontend -f "UI_Copy/Dockerfile" "UI_Copy/frontend"
+          docker build -t frontend -f "UI_Copy/Dockerfile" "UI_Copy"
           docker tag frontend:latest $IMAGE_URI
           docker push $IMAGE_URI
 
@@ -75,8 +75,10 @@ jobs:
       # -------------------------------
       - name: Deploy to EC2
         run: |
-          echo "${{ secrets.EC2_KEY }}" > ec2_key.pem
+          # Strip any Windows line endings from the EC2 key
+          echo "${{ secrets.EC2_KEY }}" | tr -d '\r' > ec2_key.pem
           chmod 600 ec2_key.pem
+          
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             # Install Docker if not installed
             if ! command -v docker &> /dev/null; then
