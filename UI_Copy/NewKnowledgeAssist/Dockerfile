@@ -1,26 +1,40 @@
-# Frontend Dockerfile
-FROM node:20-alpine AS build
+# -----------------------------
+# Base image
+# -----------------------------
+FROM node:20-alpine
 
+# -----------------------------
+# Set working directory
+# -----------------------------
 WORKDIR /app
 
+# -----------------------------
 # Copy package files and install dependencies
+# -----------------------------
 COPY package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
-# Copy entire frontend source code
+# -----------------------------
+# Copy frontend source code
+# -----------------------------
 COPY . .
 
-# Build React app
+# -----------------------------
+# Build the React app
+# -----------------------------
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# -----------------------------
+# Install serve to run production build
+# -----------------------------
+RUN npm install -g serve
 
-# Copy build to nginx html directory
-COPY --from=build /app/build /usr/share/nginx/html
-
-# Expose port
+# -----------------------------
+# Expose frontend port
+# -----------------------------
 EXPOSE 80
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# -----------------------------
+# Start frontend server
+# -----------------------------
+CMD ["serve", "-s", "build", "-l", "80"]
