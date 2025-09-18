@@ -1,18 +1,32 @@
-# Use official Python image
+# Use official Python slim image
 FROM python:3.12-slim
 
-# Set working directory inside container
+# Set working directory
 WORKDIR /app
 
-# Copy requirements and install dependencies first (cache)
+# Install system dependencies needed for Python packages
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        gcc \
+        curl \
+        wget \
+        git \
+        && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for caching
 COPY requirements.txt ./
+
+# Upgrade pip and install Python dependencies
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy entire backend source code
+# Copy backend source code
 COPY . .
 
-# Expose backend port
+# Expose the backend port
 EXPOSE 8000
 
-# Default command to run backend
+# Start backend server
 CMD ["python", "fastapi_main.py"]
