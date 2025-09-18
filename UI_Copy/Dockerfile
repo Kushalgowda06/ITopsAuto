@@ -1,30 +1,22 @@
-# Use official Node.js image
-FROM node:20 AS builder
+# Use Node image
+FROM node:20
 
+# Set working directory
 WORKDIR /app
 
-# Copy package files first
-COPY UI_Copy/package.json UI_Copy/package-lock.json* ./
-
-# Install dependencies
+# Copy package files and install dependencies
+COPY package*.json ./
 RUN npm install
 
-# Copy frontend source code
-COPY UI_Copy/ .
+# Copy entire frontend source code
+COPY . .
 
 # Build the React app
 RUN npm run build
 
-# -------------------------------
-# Stage 2: Production Nginx
-# -------------------------------
+# Use Nginx to serve production build
 FROM nginx:alpine
-
-# Remove default Nginx static files
-RUN rm -rf /usr/share/nginx/html/*
-
-# Copy built React app to Nginx
-COPY --from=builder /app/build /usr/share/nginx/html
+COPY --from=0 /app/build /usr/share/nginx/html
 
 # Expose port 80
 EXPOSE 80
