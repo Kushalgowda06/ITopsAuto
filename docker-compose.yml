@@ -1,28 +1,18 @@
-version: '3.8'
+version: "3.9"
 
 services:
   backend:
-    build:
-      context: ./Backend/project/llm_app
-      dockerfile: Dockerfile
+    image: 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
     container_name: backend
     ports:
       - "8000:8000"
     environment:
-      VAULT_TOKEN: ${VAULT_TOKEN}
-      DB_HOST: ${DB_HOST}
-      DB_NAME: ${DB_NAME}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - ./Backend/project/llm_app/configuration.py:/app/configuration.py
+      VAULT_TOKEN: "${VAULT_TOKEN}"
+    restart: unless-stopped
 
   frontend:
-    build:
-      context: ./Backend/frontend
-      dockerfile: Dockerfile
+    image: 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
     container_name: frontend
     ports:
       - "80:80"
-    environment:
-      REACT_APP_API_URL: ${REACT_APP_API_URL}
+    restart: unless-stopped
