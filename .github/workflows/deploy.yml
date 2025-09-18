@@ -10,15 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # -------------------------------
-      # Step 1: Checkout code
-      # -------------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      # -------------------------------
-      # Step 2: Configure AWS credentials
-      # -------------------------------
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -26,17 +20,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-west-1
 
-      # -------------------------------
-      # Step 3: Generate configuration.py from secret
-      # -------------------------------
       - name: Generate configuration.py
         run: |
           mkdir -p Backend/project/llm_app
           echo "${{ secrets.configuration }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
 
-      # -------------------------------
-      # Step 4: Ensure ECR repositories exist
-      # -------------------------------
       - name: Ensure ECR repositories exist
         run: |
           for REPO in itopsbackend itopsfrontend; do
@@ -44,9 +32,6 @@ jobs:
             aws ecr create-repository --repository-name $REPO
           done
 
-      # -------------------------------
-      # Step 5: Build & Push Backend Docker Image
-      # -------------------------------
       - name: Build & Push Backend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
@@ -55,9 +40,6 @@ jobs:
           aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
           docker push $IMAGE_URI
 
-      # -------------------------------
-      # Step 6: Build & Push Frontend Docker Image
-      # -------------------------------
       - name: Build & Push Frontend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
@@ -66,9 +48,6 @@ jobs:
           aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
           docker push $IMAGE_URI
 
-      # -------------------------------
-      # Step 7: Deploy containers on EC2
-      # -------------------------------
       - name: Deploy to EC2
         run: |
           echo "${{ secrets.EC2_KEY }}" > ec2_key.pem
@@ -77,31 +56,15 @@ jobs:
             # Login to ECR
             aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
 
-            # Install Docker if not installed
-            if ! command -v docker &> /dev/null; then
-              echo "Installing Docker..."
-              if [ -x "$(command -v yum)" ]; then
-                sudo amazon-linux-extras install docker -y
-              else
-                sudo apt-get update -y
-                sudo apt-get install docker.io -y
-              fi
-              sudo service docker start
-              sudo usermod -a -G docker $USER
-            fi
+            # Stop and remove existing containers
+            docker stop backend frontend || true
+            docker rm backend frontend || true
 
-            # Deploy backend container
+            # Deploy backend
             docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
-            docker stop backend || true
-            docker rm backend || true
-            docker run -d --name backend -p 8000:8000 \
-              -e VAULT_TOKEN="${{ secrets.VAULT_TOKEN }}" \
-              361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
+            docker run -d --name backend -p 8000:8000 -e VAULT_TOKEN="${{ secrets.VAULT_TOKEN }}" 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
 
-            # Deploy frontend container
+            # Deploy frontend
             docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-            docker stop frontend || true
-            docker rm frontend || true
-            docker run -d --name frontend -p 80:80 \
-              361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
+            docker run -d --name frontend -p 80:80 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
           EOF
