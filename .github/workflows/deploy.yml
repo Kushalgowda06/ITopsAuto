@@ -11,7 +11,7 @@ jobs:
 
     steps:
       # -------------------------------
-      # Step 1: Checkout code
+      # Step 1: Checkout repository
       # -------------------------------
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -32,7 +32,7 @@ jobs:
       - name: Generate configuration.py
         run: |
           mkdir -p Backend/project/llm_app
-          echo "${{ secrets.configuration }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
+          echo "${{ secrets.CONFIGURATION }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
 
       # -------------------------------
       # Step 4: Ensure ECR repositories exist
@@ -66,7 +66,7 @@ jobs:
       - name: Build & Push Frontend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-          docker build -t frontend -f "UI_Copy/Dockerfile" "UI_Copy"
+          docker build -t frontend -f "UI_Copy/NewKnowledgeAssist/Dockerfile" "UI_Copy/NewKnowledgeAssist"
           docker tag frontend:latest $IMAGE_URI
           docker push $IMAGE_URI
 
@@ -75,10 +75,8 @@ jobs:
       # -------------------------------
       - name: Deploy to EC2
         run: |
-          # Strip any Windows line endings from the EC2 key
-          echo "${{ secrets.EC2_KEY }}" | tr -d '\r' > ec2_key.pem
+          echo "${{ secrets.EC2_KEY }}" > ec2_key.pem
           chmod 600 ec2_key.pem
-          
           ssh -o StrictHostKeyChecking=no -i ec2_key.pem ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
             # Install Docker if not installed
             if ! command -v docker &> /dev/null; then
@@ -98,7 +96,7 @@ jobs:
             docker stop backend || true
             docker rm backend || true
             docker run -d --name backend -p 8000:8000 \
-              -e VAULT_TOKEN="${{ secrets.vault_token }}" \
+              -e VAULT_TOKEN="${{ secrets.VAULT_TOKEN }}" \
               361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
 
             # Deploy frontend container
