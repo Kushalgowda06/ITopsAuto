@@ -1,18 +1,30 @@
-# Backend Dockerfile
+# -----------------------------
+# Base image
+# -----------------------------
 FROM python:3.12-slim
 
-# Set work directory inside container
+# -----------------------------
+# Set working directory
+# -----------------------------
 WORKDIR /app
 
-# Copy requirements and install dependencies first (cache)
-COPY requirements.txt ./
+# -----------------------------
+# Copy requirements and install dependencies
+# -----------------------------
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire backend source code
+# -----------------------------
+# Copy backend source code
+# -----------------------------
 COPY . .
 
-# Expose port
+# -----------------------------
+# Expose backend port
+# -----------------------------
 EXPOSE 8000
 
-# Command to run FastAPI backend
+# -----------------------------
+# Start backend server
+# -----------------------------
 CMD ["uvicorn", "fastapi_main:app", "--host", "0.0.0.0", "--port", "8000"]
