@@ -93,19 +93,27 @@ jobs:
               sudo usermod -a -G docker $USER
             fi
 
-            # Remove old containers
+            # Re-authenticate with ECR (tokens expire every 12 hours)
+            aws ecr get-login-password --region us-west-1 | \
+            docker login --username AWS --password-stdin 361568250748.dkr.ecr.us-west-1.amazonaws.com
+
+            # Clean up old containers
             docker ps -a -q --filter "name=backend" | xargs -r docker rm -f
             docker ps -a -q --filter "name=frontend" | xargs -r docker rm -f
+
+            # (Optional) clean up old images to avoid cache issues
+            docker image prune -af
+
             sleep 3
 
             # Deploy backend container
             docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
-            docker run -d --name backend -p 8000:8000 \
+            docker run -d --name backend --restart unless-stopped -p 8000:8000 \
               -e VAULT_TOKEN="${{ secrets.VAULT_TOKEN }}" \
               361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsbackend:latest
 
             # Deploy frontend container
             docker pull 361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-            docker run -d --name frontend -p 80:80 \
+            docker run -d --name frontend --restart unless-stopped -p 80:80 \
               361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
           EOF
