@@ -1,242 +1,89 @@
-# Backend/llm_app/llm_utils.py
-
-import os
-import sys
-import re
-from typing import Dict
+import secrets
+import uvicorn
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
-from loguru import logger
-import autogen
+from fastapi.exceptions import RequestValidationError
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-# -------------------------
-# Load CONFIGURATION from environment variable
-# -------------------------
-config_code = os.environ.get("CONFIGURATION", None)
-if config_code:
-    exec(config_code)  # dynamically creates 'config' dict
-else:
-    config = {}  # fallback empty dict
+#from config.config_routes import router as config_router
+#from rosters.roster_routes import router as roster_router
+# from itsm.itsm_connector_routes import router as itsm_router
+# from database.vectordb_connector_routes import router as vectordb_router
+#from database.sqldatabase_connector_routes import router as sqldb_router
+from knowledge_management.knowledge_assistant_routes import router as knowledge_assistant_router
+from resolution_management.resolution_assist_routes import router as resolution_assist_router
+from change_management.change_management_routes import router as change_management_router
+from change_management.file_upload_routes import router as upload_router
+from llm_app.llm_routes import router as llm_router
 
-# -------------------------
-# Paths for file access
-# -------------------------
-SCRIPT_PATH = os.path.dirname(__file__)
-ROOT_PATH = SCRIPT_PATH.split("\\llm_app")[0]
-sys.path.append(ROOT_PATH)
+from fastapi.middleware.cors import CORSMiddleware
 
-# -------------------------
-# Main LLM Utils Class
-# -------------------------
-class LLMUtils:
+app = FastAPI(docs = "/documentation", redoc_url = None)
+security = HTTPBasic()
 
-    def __init__(self):
-        self.api_key = config.get("openai_key")
-        self.api_version = config.get("openai_api_version")
-        self.azure_endpoint = config.get("openai_azure_enpoint")
-        self.model = config.get("openai_model")
-        self.api_type = config.get("api_type")
-        self.system_prompt = "You are a helpful assistant that responds to queries associated to IT stuff."
+# Replace with your actual frontend origin
+origins = [
+"http://172.31.12.205:3000"
+]
 
-    def ask_llm(self, query: str = ""):
-        input_prompt = query
-        az_config_list = [{
-            "model": self.model,
-            "api_type": self.api_type,
-            "base_url": self.azure_endpoint,
-            "api_key": self.api_key,
-            "api_version": self.api_version
-        }]
-        llm_config = {"config_list": az_config_list, "temperature": 0.5}
+MAX_BYTES = 1024 * 1024 * 50  # 50MB limit
 
-        generic_agent = autogen.ConversableAgent(
-            name="generic_agent",
-            llm_config=llm_config,
-            human_input_mode="NEVER"
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins = origins,              # Must NOT be ["*"] when credentials are used
+    allow_credentials = True,             # This enables cookies, auth headers, etc.
+    allow_methods = ["*"],                # Adjust if needed
+    allow_headers = ["*"],                # Adjust if needed
+)
+
+# Reject large uploads early if Content-Length is known
+@app.middleware("http")
+async def limit_upload_size(request, call_next):
+    if request.url.path == "/upload_image":
+        cl = request.headers.get("content-length")
+        if cl:
+            try:
+                if int(cl) > MAX_BYTES:
+                    return JSONResponse(status_code=413, content={"detail": "File too large"})
+            except ValueError:
+                pass
+    return await call_next(request)
+
+
+def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, "rest")
+    correct_password = secrets.compare_digest(credentials.password, "!fi$5*4KlHDdRwdbup%ix")
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Basic"},
         )
+    return credentials.username
 
-        response = generic_agent.generate_reply(
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": input_prompt}
-            ]
-        )
-        return response
 
-    def ask_llm_with_context(self, query: str = "", context: dict = {}):
-        input_prompt = query
-        messages = context.get("messages", [])
-        if not messages:
-            messages = [
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": input_prompt}
-            ]
-        else:
-            messages.append({"role": "user", "content": input_prompt})
+# app.include_router(itsm_router, prefix = '/itsm', tags = ['ITSM - ServiceNOW'], dependencies=[Depends(authenticate)])
+#app.include_router(roster_router, prefix = '/rosters', tags = ['Roster - ExcelData'], dependencies=[Depends(authenticate)])
+#app.include_router(sqldb_router, prefix = '/database', tags = ['SQL Database - PosgreSQL'], dependencies=[Depends(authenticate)])
+#app.include_router(config_router, prefix = '/configurations', tags = ['Config - Database'], dependencies=[Depends(authenticate)])
+# app.include_router(vectordb_router, prefix = '/vector_database', tags = ['Vector Database - PosgreSQL'], dependencies=[Depends(authenticate)])
+app.include_router(knowledge_assistant_router, prefix = '/kb_management', tags = ['Knowledge Assistant'], dependencies=[Depends(authenticate)])
+app.include_router(resolution_assist_router, prefix  = '/resolution_management', tags = ['Resolution Management'], dependencies=[Depends(authenticate)])
+app.include_router(change_management_router, prefix  = '/change_management', tags = ['Change Management'], dependencies=[Depends(authenticate)])
+app.include_router(upload_router, prefix  = '/remote_file_management', tags = ['File Upload Management'], dependencies=[Depends(authenticate)])
+app.include_router(llm_router, prefix  = '/llm', tags = ['LLM Responses'], dependencies=[Depends(authenticate)])
 
-        az_config_list = [{
-            "model": self.model,
-            "api_type": self.api_type,
-            "base_url": self.azure_endpoint,
-            "api_key": self.api_key,
-            "api_version": self.api_version
-        }]
-
-        llm_config = {"config_list": az_config_list, "temperature": 0.5}
-
-        generic_agent = autogen.ConversableAgent(
-            name="generic_agent",
-            llm_config=llm_config,
-            human_input_mode="NEVER"
-        )
-
-        response = generic_agent.generate_reply(messages=messages)
-        messages.append({"role": "system", "content": response})
-        context["messages"] = messages
-        return response, messages
-
-    def ask_llm_to_act_for_demo(self, query: str = "", context: dict = {}):
-        try:
-            with open(os.path.join(ROOT_PATH, "config/demo_story.txt"), "r") as f:
-                assistant_backstory = f.read()
-        except Exception:
-            assistant_backstory = "You are a demo assistant."
-
-        input_prompt = query
-        az_config_list = [{
-            "model": self.model,
-            "api_type": self.api_type,
-            "base_url": self.azure_endpoint,
-            "api_key": self.api_key,
-            "api_version": self.api_version
-        }]
-        llm_config = {"config_list": az_config_list, "temperature": 0.5}
-
-        demo_agent = autogen.AssistantAgent(
-            "demo_agent",
-            llm_config=llm_config,
-            human_input_mode="NEVER",
-            system_message=assistant_backstory
-        )
-
-        if "context" not in context:
-            context["context"] = []
-
-        history = ""
-        for entry in context["context"]:
-            history += f'{entry["role"]}: {entry["content"]}\n'
-
-        context["context"].append({"role": "user", "content": input_prompt})
-
-        if history:
-            input_prompt += f"\n\nHere is the conversation history:\n{history}"
-
-        result = demo_agent.generate_reply(
-            messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": input_prompt}
-            ]
-        )
-
-        context["context"].append({"role": "system", "content": result})
-        return result, context
-
-    def merge_kb_articles(self, kb_article_1: str, kb_article_2: str) -> Dict:
-        try:
-            system_prompt_html = """
-                You are a knowledge management assistant.
-                Merge the two knowledge articles into a single professional ITSM-style article.
-                Return only the final HTML output.
-            """
-
-            system_prompt_analysis = """
-                You are a knowledge management assistant.
-                Analyze the two articles and return a Python dict with:
-                grammar, overlapping, conflicting, complementary.
-            """
-
-            input_prompt = f"Article1: {kb_article_1}\nArticle2: {kb_article_2}"
-
-            az_config_list = [{
-                "model": self.model,
-                "api_type": self.api_type,
-                "base_url": self.azure_endpoint,
-                "api_key": self.api_key,
-                "api_version": self.api_version
-            }]
-            llm_config = {"config_list": az_config_list, "temperature": 1}
-
-            merging_agent = autogen.ConversableAgent(
-                name="article_merger",
-                llm_config=llm_config,
-                human_input_mode="NEVER"
-            )
-
-            html_response = merging_agent.generate_reply(
-                messages=[
-                    {"role": "system", "content": system_prompt_html},
-                    {"role": "user", "content": input_prompt}
-                ]
-            )
-
-            analysis_response = merging_agent.generate_reply(
-                messages=[
-                    {"role": "system", "content": system_prompt_analysis},
-                    {"role": "user", "content": input_prompt}
-                ]
-            )
-
-            cleaned_html_response = re.sub(r"^```html\s*|\s*```$", "", html_response.strip())
-            cleaned_analysis_response = re.sub(r"^```python\s*|\s*```$", "", analysis_response.strip())
-
-            # safer alternative to eval: use ast.literal_eval
-            import ast
-            analysis_dict = ast.literal_eval(cleaned_analysis_response)
-
-            output_dict = {
-                "code": 200,
-                "data": {
-                    "merged_article": cleaned_html_response,
-                    "details": analysis_dict.get("details", {})
-                }
-            }
-            return output_dict
-
-        except Exception as e:
-            return {"code": 400, "error": str(e)}
-
-    def refine_kb_article(self, input_kb_article: str) -> Dict:
-        try:
-            system_prompt = """
-                Refine the knowledge article to meet ITSM standards.
-                Convert to clean, semantic HTML with Bootstrap styling.
-            """
-            input_prompt = f"Input Knowledge Article: {input_kb_article}"
-
-            az_config_list = [{
-                "model": self.model,
-                "api_type": self.api_type,
-                "base_url": self.azure_endpoint,
-                "api_key": self.api_key,
-                "api_version": self.api_version
-            }]
-            llm_config = {"config_list": az_config_list, "temperature": 0.8}
-
-            refine_agent = autogen.ConversableAgent(
-                name="article_refiner",
-                llm_config=llm_config,
-                human_input_mode="NEVER"
-            )
-
-            response = refine_agent.generate_reply(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": input_prompt}
-                ]
-            )
-
-            cleaned_response = re.sub(r"^```[a-zA-Z]*\n?|```$", "", response.strip())
-
-            return {"code": 200, "data": cleaned_response}
-
-        except Exception as e:
-            return {"code": 400, "error": str(e)}
+# Handling Pydantic Validation exceptions
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code = 422,
+        content={
+            "code": 422,
+            "error": {
+                "messsage": "Payload validation failed",
+                "details": exc.errors(),
+                "endpoint": request.url.path
+            },
+        },
+    )
