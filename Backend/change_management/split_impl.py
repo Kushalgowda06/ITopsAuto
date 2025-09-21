@@ -7,7 +7,7 @@ import os
 SCRIPT_PATH = os.path.dirname(__file__)
 
 az_config_list = autogen.config_list_from_json(
-        SCRIPT_PATH + "\\config\\AZ_OAI_CONFIG_LIST"
+        SCRIPT_PATH + "/config/AZ_OAI_CONFIG_LIST"
         )
 
 #LLM configurations
@@ -32,7 +32,7 @@ def get_suggestions(curr_chg, relevant_changes):
  
     #print(impl_plan)
     '''    
-    with open(SCRIPT_PATH + '\\backstory.txt','r') as file2:
+    with open(SCRIPT_PATH + '/backstory.txt','r') as file2:
         final_response_prompt = file2.read()
         final_response_prompt = final_response_prompt.replace("{curr_chg}", str(curr_chg))
         final_response_prompt = final_response_prompt.replace("{historical_chg}", str(relevant_changes))
@@ -47,7 +47,7 @@ def get_suggestions(curr_chg, relevant_changes):
     result = extract_code_block(response)
 
     try:
-        with open(SCRIPT_PATH + '\\output.txt','w') as file:
+        with open(SCRIPT_PATH + '/output.txt','w') as file:
             file.write(result)
         print("File generated as output.txt with following content \n", result)
         return result
