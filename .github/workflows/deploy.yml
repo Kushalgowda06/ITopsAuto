@@ -33,9 +33,9 @@ jobs:
         run: |
           
           mkdir -p Backend/project/llm_app
-          printf "config = %s\n" "${{ secrets.CONFIGURATION }}" > Backend/project/llm_app/configuration.py
-          echo "configuration.py created at Backend/project/llm_app/configuration.py"
-        #  echo "${{ secrets.CONFIGURATION }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
+          printf "config = %s\n" "${{ secrets.CONFIGURATION }}" > Backend/configuration.py
+          echo "configuration.py created at Backend/configuration.py"
+        #  echo "${{ secrets.CONFIGURATION }}" | sed 's/^/config = /' > Backend/configuration.py
           
           
       # -------------------------------
