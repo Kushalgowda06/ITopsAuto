@@ -7,27 +7,31 @@ from fastapi import APIRouter
 from typing import List, Optional
 from pydantic import Field, BaseModel
 from fastapi.responses import JSONResponse
+import os
+import json
 
-SCRIPT_PATH = os.path.dirname(__file__)
+# Get project root (Backend/)
+SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
+ROOT_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, os.pardir))
 
-ROOT_PATH = SCRIPT_PATH.split("\\resolution_management")[0]
-sys.path.append(ROOT_PATH)
-
-mim_conf_path = ROOT_PATH + "\\config\\mim_conf.json"
-mim_conf_file = open(mim_conf_path, 'r')
-mim_conf = json.load(mim_conf_file)
-mim_conf_file.close()
+# Correct config path (Backend/config/mim_conf.json)
+mim_conf_path = os.path.join(ROOT_PATH, "config", "mim_conf.json")
+with open(mim_conf_path, "r") as f:
+    mim_conf = json.load(f)
+    mim_conf_file.close()
 
 from vault import Vault
 from llm_app.llm_utils import LLMUtils
 
 router = APIRouter()
 
+# Read from mim_conf.json (already loaded earlier)
 vault_url = mim_conf["vault_url"]
 
-vault_token_f = open(ROOT_PATH + "\\config\\.vault_token")
-vault_token = vault_token_f.read().strip()
-vault_token_f.close()
+# Get Vault token from environment variable instead of file
+vault_token = os.getenv("VAULT_TOKEN")
+if not vault_token:
+    raise RuntimeError("VAULT_TOKEN is not set. Please configure it in GitHub Secrets or docker-compose.yml")
 
 class TechAssistPayload(BaseModel):
     query: str
