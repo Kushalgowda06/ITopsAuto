@@ -31,9 +31,13 @@ jobs:
       # -------------------------------
       - name: Generate configuration.py
         run: |
+          
           mkdir -p Backend/project/llm_app
-          echo "${{ secrets.CONFIGURATION }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
-
+          printf "config = %s\n" "${{ secrets.CONFIGURATION }}" > Backend/project/llm_app/configuration.py
+          echo "configuration.py created at Backend/project/llm_app/configuration.py"
+        #  echo "${{ secrets.CONFIGURATION }}" | sed 's/^/config = /' > Backend/project/llm_app/configuration.py
+          
+          
       # -------------------------------
       # Step 4: Ensure ECR repositories exist
       # -------------------------------
