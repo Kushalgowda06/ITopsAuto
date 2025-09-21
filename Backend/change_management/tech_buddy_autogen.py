@@ -19,14 +19,17 @@ from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code
 
 from vertexai.generative_models import HarmBlockThreshold, HarmCategory
 
+# Set the path dynamically to find the configuration module
 SCRIPT_PATH = os.path.dirname(__file__)
-ROOT_PATH = SCRIPT_PATH.split("/change_management")[0]
-
-LLM_PATH = ROOT_PATH + "/llm_app/"
-sys.path.append(LLM_PATH)
+# Go up two levels from `change_management` to the `Backend` directory
+# Using os.path.abspath and os.path.join makes this OS-agnostic
+ROOT_PATH = os.path.abspath(os.path.join(SCRIPT_PATH, os.pardir, os.pardir))
+# Construct the path to the `llm_app` directory
+LLM_APP_PATH = os.path.join(ROOT_PATH, "project", "llm_app")
+sys.path.append(LLM_APP_PATH)
 sys.path.append(ROOT_PATH)
 
-from vault import Vault
+# Now the import will work correctly
 from configuration import config
 
 # LLM / API Config
@@ -45,21 +48,21 @@ az_config_list = [{
 }]
 
 # Asset configurations
-app_conf_path = SCRIPT_PATH + "/config/app_config.json"
+app_conf_path = os.path.join(SCRIPT_PATH, "config", "app_config.json")
 with open(app_conf_path, "r") as app_conf_file:
     app_conf = json.load(app_conf_file)
 
 # Vault token
 vault_token = os.environ.get("VAULT_TOKEN")
 if not vault_token:
-    vault_path = SCRIPT_PATH + "/config/.vault_token"
+    vault_path = os.path.join(SCRIPT_PATH, "config", ".vault_token")
     with open(vault_path, "r") as vault_file:
         vault_token = vault_file.read().strip()
 
 vault_url = app_conf["vault_url"]
 
 # Assistant backstory
-assist_backstory_path = SCRIPT_PATH + "/config/assistant_backstory.txt"
+assist_backstory_path = os.path.join(SCRIPT_PATH, "config", "assistant_backstory.txt")
 with open(assist_backstory_path, "r") as assist_backstory_f:
     assistant_backstory = assist_backstory_f.read()
 
