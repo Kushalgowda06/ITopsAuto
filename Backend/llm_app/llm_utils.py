@@ -1,40 +1,68 @@
-# Backend/llm_app/llm_routes.py
+import os
+import sys
+from typing import Dict
+import re
+from .configuration import config
+import autogen
 
-from fastapi import APIRouter, Body, Depends, HTTPException
-from fastapi.responses import JSONResponse
-from .llm_utils import LLMUtils
-from .model import LLMRequest, LLMRequestWithContext
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-import secrets
+# Paths
+SCRIPT_PATH = os.path.dirname(__file__)
+ROOT_PATH = SCRIPT_PATH.split("/llm_app")[0]
+sys.path.append(ROOT_PATH)
 
-router = APIRouter()
+class LLMUtils:
+    def __init__(self):
+        self.api_key = config["openai_key"]
+        self.api_version = config["openai_api_version"]
+        self.azure_endpoint = config["openai_azure_enpoint"]
+        self.model = config["openai_model"]
+        self.api_type = config["api_type"]
+        self.system_prompt = "You are a helpful assistant that responds to queries associated to IT stuff."
 
-security = HTTPBasic()
+    def ask_llm(self, query: str = ""):
+        input_prompt = f"{query}"
+        az_config_list = [{
+            "model": self.model,
+            "api_type": self.api_type,
+            "base_url": self.azure_endpoint,
+            "api_key": self.api_key,
+            "api_version": self.api_version
+        }]
+        llm_config = {"config_list": az_config_list, "temperature": 0.5}
 
-# Basic auth function
-def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, "rest")
-    correct_password = secrets.compare_digest(credentials.password, "!fi$5*4KlHDdRwdbup%ix")
-    if not (correct_username and correct_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    return credentials.username
+        generic_agent = autogen.ConversableAgent(
+            name="generic_agent",
+            llm_config=llm_config,
+            human_input_mode="NEVER"
+        )
+        response = generic_agent.generate_reply(
+            messages=[
+                {"role": "system", "content": self.system_prompt},
+                {"role": "user", "content": input_prompt}
+            ]
+        )
+        return response
 
-llm_instance = LLMUtils()
+    def ask_llm_with_context(self, query: str = "", context: dict = {}):
+        input_prompt = f"{query}"
+        messages = [{"role": "system", "content": self.system_prompt}] if context == {} else []
+        messages += [{"role": "user", "content": input_prompt}]
 
-# Ask LLM in isolation
-@router.post("/api/v1/ask_llm_in_isolation/", dependencies=[Depends(authenticate)])
-async def ask_llm_in_isolation(payload: LLMRequest):
-    try:
-        response = llm_instance.ask_llm(payload.query)
-        return {"code": 200, "data": response}
-    except Exception as e:
-        return JSONResponse(status_code=400, content={"code": 400, "error": str(e)})
+        az_config_list = [{
+            "model": self.model,
+            "api_type": self.api_type,
+            "base_url": self.azure_endpoint,
+            "api_key": self.api_key,
+            "api_version": self.api_version
+        }]
+        llm_config = {"config_list": az_config_list, "temperature": 0.5}
 
-# Ask LLM with context
-@router.post("/api/v1/ask_llm_with_context/", dependencies=[Depends(authenticate)])
-async def ask_llm_with_context(payload: LLMRequestWithContext):
-    try:
-        response, updated_context = llm_instance.ask_llm_with_context(payload.query, payload.context)
-        return {"code": 200, "data": {"response": response, "context": updated_context}}
-    except Exception as e:
-        return JSONResponse(status_code=400, content={"code": 400, "error": str(e)})
+        generic_agent = autogen.ConversableAgent(
+            name="generic_agent",
+            llm_config=llm_config,
+            human_input_mode="NEVER"
+        )
+
+        response = generic_agent.generate_reply(messages=messages)
+        messages += [{"role": "system", "content": response}]
+        return response, messages
