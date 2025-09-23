@@ -78,7 +78,7 @@ az_config_list = [{
 
 # Asset configurations
 # SCRIPT_PATH = os.path.dirname(__file__)
-app_conf_path = SCRIPT_PATH + "\\config\\app_config.json"
+app_conf_path = SCRIPT_PATH + "/config/app_config.json"
 
 app_conf_file = open(app_conf_path, "r")
 app_conf = json.load(app_conf_file)
