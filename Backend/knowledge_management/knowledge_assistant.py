@@ -17,7 +17,7 @@ from langchain.schema import Document
 
 SCRIPT_PATH = os.path.dirname(__file__)
 
-ROOT_PATH = SCRIPT_PATH.split('\\knowledge_management')[0]
+ROOT_PATH = SCRIPT_PATH.split('/knowledge_management')[0]
 sys.path.append(ROOT_PATH)
 
 from database.vectordb_connector import VectorDatabase
