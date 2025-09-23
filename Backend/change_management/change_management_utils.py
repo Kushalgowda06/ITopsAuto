@@ -14,7 +14,7 @@ SCRIPT_PATH = os.path.dirname(__file__)
 
 #import visual_analyzer
 
-ROOT_PATH = os.path.dirname(SCRIPT_PATH.split('\\change_management\\')[0])
+ROOT_PATH = os.path.dirname(SCRIPT_PATH.split('/change_management/')[0])
 sys.path.append(ROOT_PATH)
 sys.path.append(SCRIPT_PATH)
 from vault import Vault
@@ -26,7 +26,7 @@ class ChangeManagement:
         """Initialize the Change Management system."""
         print(f"SCRIPT PATH -------------{SCRIPT_PATH}")
         print(f"ROOT_PATH ---------------{ROOT_PATH}")
-        conf_f_path = ROOT_PATH + '\\config\\mim_conf.json'
+        conf_f_path = ROOT_PATH + '/config/mim_conf.json'
     
 
         # Read configuration file
@@ -39,7 +39,7 @@ class ChangeManagement:
             self.snow_url = self.snow_url[:-1]
 
         # Initiate vault
-        vault_path = ROOT_PATH + '\\config\\.vault_token'
+        vault_path = ROOT_PATH + '/config/.vault_token'
 
         vault_file = open(vault_path, 'r')
         vault_token = vault_file.read().strip()
@@ -60,7 +60,7 @@ class ChangeManagement:
 
         snow_tag = mim_conf['snow_tag']
 
-        if self.snow_url.endswith('\\'):
+        if self.snow_url.endswith('/'):
             self.snow_url = self.snow_url[:-1]
 
         snow_creds = self.vault_session.retrieve_secret(snow_tag)
@@ -82,7 +82,7 @@ class ChangeManagement:
         """Handle the uploaded file for architecture diagram."""
 
         uploaded_files = ""
-        with open(SCRIPT_PATH + "\\static\\" + uploaded_file, "wb") as file:
+        with open(SCRIPT_PATH + "/static/" + uploaded_file, "wb") as file:
             file.write(uploaded_file.getvalue())
             uploaded_files += ", " + uploaded_file
 
