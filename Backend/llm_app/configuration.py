@@ -14,10 +14,10 @@ config={
       # "openai_api_version":"2025-01-01-preview",
       # "openai_azure_enpoint":"https://aiinfusedterraformmodel.cognitiveservices.azure.com/",
       # "openai_model":"gpt-4o",
-      "openai_key":"5mOo4VEjJoEvVXKlaeBp62fFNw0rowW37dTsVNju6EgTSToisopPJQQJ99BHACHYHv6XJ3w3AAAAACOG7T2P",
-      "openai_api_version":"2025-01-01-preview",
-      "openai_azure_enpoint":"https://techbuddy-az-openai.cognitiveservices.azure.com/",
-      "openai_model":"gpt-4o",
-      "api_type":"azure"
+      "openai_key"="5mOo4VEjJoEvVXKlaeBp62fFNw0rowW37dTsVNju6EgTSToisopPJQQJ99BHACHYHv6XJ3w3AAAAACOG7T2P",
+      "openai_api_version"="2025-01-01-preview",
+      "openai_azure_enpoint"="https://techbuddy-az-openai.cognitiveservices.azure.com/",
+      "openai_model"="gpt-4o",
+      "api_type"="azure"
       }
 
