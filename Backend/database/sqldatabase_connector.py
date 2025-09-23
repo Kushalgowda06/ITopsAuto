@@ -18,14 +18,14 @@ class CustomError(Exception):
 class SQLDatabase:
     def __init__(self):
         #Fetch Credentials from Vault
-        mim_conf_path = SCRIPT_PATH.split('\\database')[0] + '\\config\\mim_conf.json'
+        mim_conf_path = SCRIPT_PATH.split('/database')[0] + '/config/mim_conf.json'
 
         mim_conf_file = open(mim_conf_path, 'r')
         mim_conf = json.load(mim_conf_file)
         mim_conf_file.close()
 
         # Initiate vault
-        vault_path = SCRIPT_PATH.split('\\database')[0] + '\\config\\.vault_token'
+        vault_path = SCRIPT_PATH.split('/database')[0] + '/config/.vault_token'
 
         vault_file = open(vault_path, 'r')
         vault_token = vault_file.read().strip()
