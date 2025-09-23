@@ -19,7 +19,7 @@ class KBManager:
         model_kwargs = {'device': 'cpu'}
         encode_kwargs = {'normalize_embeddings': False}
 
-        self.em_model = HuggingFaceEmbeddings(model_name = SCRIPT_PATH + "\\model",
+        self.em_model = HuggingFaceEmbeddings(model_name = SCRIPT_PATH + "/model",
                                               model_kwargs = model_kwargs,
                                               encode_kwargs = encode_kwargs)
 
@@ -27,9 +27,9 @@ class KBManager:
         # Insert KB articles in Chroma Vector DB
 
         if kb_name.strip() == '':
-            db = Chroma.from_documents(documents, self.em_model, persist_directory = SCRIPT_PATH + '\\platform_knowledge_base')
+            db = Chroma.from_documents(documents, self.em_model, persist_directory = SCRIPT_PATH + '/platform_knowledge_base')
         else:
-            db = Chroma.from_documents(documents, self.em_model, persist_directory = SCRIPT_PATH + '\\' + kb_name.strip(), collection_name = collection_name)
+            db = Chroma.from_documents(documents, self.em_model, persist_directory = SCRIPT_PATH + '/' + kb_name.strip(), collection_name = collection_name)
 
         # print(str(len(documents)) + ' inserted to database.')
         db.persist()
@@ -37,14 +37,14 @@ class KBManager:
     def retrieve_kb_connection(self, kb_name = '', collection_name = ''):
         # Retrieve KB articles from Chroma Vector DB
         if kb_name.strip() == '':
-            db_connection = Chroma(persist_directory = SCRIPT_PATH + '\\platform_knowledge_base', embedding_function = self.em_model)
+            db_connection = Chroma(persist_directory = SCRIPT_PATH + '/platform_knowledge_base', embedding_function = self.em_model)
         else:
-            db_connection = Chroma(persist_directory = SCRIPT_PATH + '\\' + kb_name.strip(), embedding_function = self.em_model, collection_name = collection_name)
+            db_connection = Chroma(persist_directory = SCRIPT_PATH + '/' + kb_name.strip(), embedding_function = self.em_model, collection_name = collection_name)
 
         return db_connection
 
     def update_kb_document(self, kb_name = '', collection_name = ''):
-        db_update_collection = Chroma(persist_directory = SCRIPT_PATH + '\\' + kb_name.strip(), embedding_function = self.em_model, collection_name = collection_name)
+        db_update_collection = Chroma(persist_directory = SCRIPT_PATH + '/' + kb_name.strip(), embedding_function = self.em_model, collection_name = collection_name)
         result = db_update_collection.get()
         print(result)
 
