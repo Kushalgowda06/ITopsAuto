@@ -3,7 +3,7 @@ import sys
 import json
 
 SCRIPT_PATH = os.path.dirname(__file__)
-ROOT_PATH = SCRIPT_PATH.split("/config")[0]
+ROOT_PATH = SCRIPT_PATH.split("\\config")[0]
 sys.path.append(ROOT_PATH)
 
 from database.sqldatabase_connector import SQLDatabase

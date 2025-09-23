@@ -1,5 +1,4 @@
 import os
-import json
 import traceback
 
 from fastapi import APIRouter
@@ -9,23 +8,14 @@ from fastapi.responses import JSONResponse
 
 from .knowledge_assistant import *
 
-# -------------------------
-# Script and root paths
-# -------------------------
-SCRIPT_PATH = os.path.dirname(os.path.abspath(__file__))
-ROOT_PATH = os.path.dirname(SCRIPT_PATH)  # Goes up to /app/knowledge_management
-CONFIG_PATH = os.path.join(ROOT_PATH, "config", "mim_conf.json")  # /app/config/mim_conf.json
+SCRIPT_PATH = os.path.dirname(__file__)
 
-# -------------------------
-# Load mim_conf.json
-# -------------------------
-with open(CONFIG_PATH, 'r') as mim_conf_file:
-    mim_conf = json.load(mim_conf_file)
-
-# -------------------------
-# FastAPI router
-# -------------------------
 router = APIRouter()
+
+mim_conf_path = SCRIPT_PATH.split('\\knowledge_management')[0] + '\\config\\mim_conf.json'
+mim_conf_file = open(mim_conf_path, 'r')
+mim_conf = json.load(mim_conf_file)
+mim_conf_file.close()
 
 class KnowledgeAssistantPayload(BaseModel):
     query: str
@@ -35,17 +25,17 @@ async def get_contextual_response(payload: KnowledgeAssistantPayload) -> dict:
     response = {}
     try:
         ka_obj = KnowledgeAssistant()
-        data = ka_obj.get_contextual_response(query=payload.query)
+        data = ka_obj.get_contextual_response(query = payload.query)
 
-        response['output'] = {"data": data, "message": "Contextual response retrieved successfully."}
+        response['output'] = {"data": data, "message": 'Contextual response retrieved successfully.'}
         response['code'] = 200
 
-        return JSONResponse(status_code=200, content=response)
-
+        return JSONResponse(status_code = 200, content = response)
+    
     except Exception as e:
         response['error'] = {"data": {}, "message": str(e)}
         response['code'] = 500
 
         traceback.print_exc()
 
-        return JSONResponse(status_code=500, content=response)
+        return JSONResponse(status_code = 500, content = response)
