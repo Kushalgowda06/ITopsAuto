@@ -12,7 +12,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 
 SCRIPT_PATH = os.path.dirname(__file__)
-ROOT_PATH=SCRIPT_PATH.split('\\database')[0]
+ROOT_PATH=SCRIPT_PATH.split('/database')[0]
 sys.path.append(ROOT_PATH)
 from vault import Vault
 class CustomError(Exception):
@@ -25,14 +25,14 @@ class CustomError(Exception):
 class VectorDatabase:
     def __init__(self):
         # Collect call analytics tool configuration details
-        mim_conf_path = SCRIPT_PATH.split('\\database')[0] + '\\config\\mim_conf.json'
+        mim_conf_path = SCRIPT_PATH.split('/database')[0] + '/config/mim_conf.json'
 
         mim_conf_file = open(mim_conf_path, 'r')
         mim_conf = json.load(mim_conf_file)
         mim_conf_file.close()
 
         # Initiate vault
-        vault_path = SCRIPT_PATH.split('\\database')[0] + '\\config\\.vault_token'
+        vault_path = SCRIPT_PATH.split('/database')[0] + '/config/.vault_token'
 
         vault_file = open(vault_path, 'r')
         vault_token = vault_file.read().strip()
@@ -62,7 +62,7 @@ class VectorDatabase:
         encode_kwargs = {'normalize_embeddings': False}
         model_kwargs = {'device': 'cpu'}
         try:
-            self.em_model = HuggingFaceEmbeddings(model_name = ROOT_PATH + "\\model",
+            self.em_model = HuggingFaceEmbeddings(model_name = ROOT_PATH + "/model",
                                                 model_kwargs = model_kwargs,
                                                 encode_kwargs = encode_kwargs)
             
