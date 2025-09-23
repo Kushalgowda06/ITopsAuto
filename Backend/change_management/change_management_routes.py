@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from .ctask_creator import ServiceNowChangeRequests
 from .change_management_utils import ChangeManagement
 import json
+from configuration import config
 
 SCRIPT_PATH = os.path.dirname(__file__)
 
