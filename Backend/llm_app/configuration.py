@@ -1,26 +1,23 @@
-import os
+config={
+      "version":"v1",
+      "vault_path":"vault_path",
+      "snow_url":"https://cisicmpengineering1.service-now.com",
+      "snow_username":"ServicenowAPI",
+      "snow_password":"Qwerty@123",
+      "kb_postgre_database": "postgre_db",
+      "kb_postgre_table":"postgre_table",
+      "kb_postgre_user":"postgre_user",
+      "kb_postgre_password":"postgre_password",
+      "kb_postgre_host":"host",
+      "kb_postgre_port":"port",
+      # "openai_key":"0911999a1afe4ccdaa361cb2c801ee11",
+      # "openai_api_version":"2025-01-01-preview",
+      # "openai_azure_enpoint":"https://aiinfusedterraformmodel.cognitiveservices.azure.com/",
+      # "openai_model":"gpt-4o",
+      "openai_key":"5mOo4VEjJoEvVXKlaeBp62fFNw0rowW37dTsVNju6EgTSToisopPJQQJ99BHACHYHv6XJ3w3AAAAACOG7T2P",
+      "openai_api_version":"2025-01-01-preview",
+      "openai_azure_enpoint":"https://techbuddy-az-openai.cognitiveservices.azure.com/",
+      "openai_model":"gpt-4o",
+      "api_type":"azure"
+      }
 
-def get_config():
-    """
-    Loads configuration from environment variables.
-    """
-    return {
-        "version": os.environ.get("VERSION", "v1"),
-        "vault_path": os.environ.get("VAULT_PATH", "vault_path"),
-        "snow_url": os.environ.get("SNOW_URL", "https://cisicmpengineering1.service-now.com"),
-        "snow_username": os.environ.get("SNOW_USERNAME", "ServicenowAPI"),
-        "snow_password": os.environ.get("SNOW_PASSWORD"),  # Reads from .env
-        "kb_postgre_database": os.environ.get("KB_POSTGRE_DATABASE"),
-        "kb_postgre_table": os.environ.get("KB_POSTGRE_TABLE"),
-        "kb_postgre_user": os.environ.get("KB_POSTGRE_USER"),
-        "kb_postgre_password": os.environ.get("KB_POSTGRE_PASSWORD"),
-        "kb_postgre_host": os.environ.get("KB_POSTGRE_HOST"),
-        "kb_postgre_port": os.environ.get("KB_POSTGRE_PORT"),
-        "openai_key": os.environ.get("OPENAI_KEY"),  # Reads from .env
-        "openai_api_version": os.environ.get("OPENAI_API_VERSION"),
-        "openai_azure_enpoint": os.environ.get("OPENAI_AZURE_ENPOINT"),
-        "openai_model": os.environ.get("OPENAI_MODEL"),
-        "api_type": os.environ.get("API_TYPE")
-    }
-
-config = get_config()
