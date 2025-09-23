@@ -7,7 +7,7 @@ from .file_upload import UploadService
 
 SCRIPT_PATH = os.path.dirname(__file__)
 
-mim_conf_path = SCRIPT_PATH.split('\\change_management')[0] + '\\config\\mim_conf.json'
+mim_conf_path = SCRIPT_PATH.split('/change_management')[0] + '/config/mim_conf.json'
 mim_conf_file = open(mim_conf_path, 'r')
 mim_conf = json.load(mim_conf_file)
 mim_conf_file.close()
