@@ -9,7 +9,7 @@ from langchain.schema import Document
 from langchain_community.document_loaders import UnstructuredHTMLLoader
 
 SCRIPT_PATH = os.path.dirname(__file__)
-ROOT_PATH = SCRIPT_PATH.split('\\kb_data')[0]
+ROOT_PATH = SCRIPT_PATH.split('/kb_data')[0]
 print(ROOT_PATH)
 
 sys.path.append(ROOT_PATH)
@@ -22,14 +22,14 @@ class ServiceNowKBArticles:
         
 
         #Collect servicenow configuration details
-        app_conf_path = ROOT_PATH + '\\config\\app_config.json'
+        app_conf_path = ROOT_PATH + '/config/app_config.json'
 
         app_conf_file = open(app_conf_path, 'r')
         app_conf = json.load(app_conf_file)
         app_conf_file.close()
 
         # Initiate vault
-        vault_path = ROOT_PATH + '\\config\\.vault_token'
+        vault_path = ROOT_PATH + '/config/.vault_token'
 
         vault_file = open(vault_path, 'r')
         vault_token = vault_file.read().strip()
@@ -94,7 +94,7 @@ class ServiceNowKBArticles:
             return []
 
         for ind in range(len(kb_articles)):
-            f_path = SCRIPT_PATH + '\\' + kb_articles[ind]['number'] + '.html'
+            f_path = SCRIPT_PATH + '/' + kb_articles[ind]['number'] + '.html'
             f = open(f_path, 'w+')
             try:
                 f.write(kb_articles[ind]['text'])
