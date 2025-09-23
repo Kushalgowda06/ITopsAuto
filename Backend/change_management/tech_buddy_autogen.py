@@ -36,7 +36,7 @@ seed = 25
 
 # Establish VertexAI connectivity
 config_list_gemini = autogen.config_list_from_json(
-        "config\\OAI_CONFIG_LIST"
+        "config/OAI_CONFIG_LIST"
         )
 
 for config_list in [config_list_gemini]:
@@ -46,9 +46,9 @@ for config_list in [config_list_gemini]:
 '''
 
 SCRIPT_PATH = os.path.dirname(__file__)
-ROOT_PATH = SCRIPT_PATH.split("\\change_management")[0]
+ROOT_PATH = SCRIPT_PATH.split("/change_management")[0]
 
-LLM_PATH = ROOT_PATH + "\\llm_app\\"
+LLM_PATH = ROOT_PATH + "/llm_app/"
 print(LLM_PATH)
 sys.path.append(LLM_PATH)
 sys.path.append(ROOT_PATH)
@@ -64,7 +64,7 @@ api_type = config["api_type"]
 
 '''
 az_config_list = autogen.config_list_from_json(
-        SCRIPT_PATH + "\\config\\AZ_OAI_CONFIG_LIST"
+        SCRIPT_PATH + "/config/AZ_OAI_CONFIG_LIST"
         )
 '''
 
@@ -85,7 +85,7 @@ app_conf = json.load(app_conf_file)
 app_conf_file.close()
 
 # Initiate vault
-vault_path = SCRIPT_PATH + "\\config\\.vault_token"
+vault_path = SCRIPT_PATH + "/config/.vault_token"
 
 vault_file = open(vault_path, "r")
 vault_token = vault_file.read().strip()
@@ -94,7 +94,7 @@ vault_file.close()
 vault_url = app_conf["vault_url"]
 
 # Initiate assistant agent
-assist_backstory_f = open(SCRIPT_PATH + "\\config\\assistant_backstory.txt", "r")
+assist_backstory_f = open(SCRIPT_PATH + "/config/assistant_backstory.txt", "r")
 assistant_backstory = assist_backstory_f.read()
 assist_backstory_f.close()
 
