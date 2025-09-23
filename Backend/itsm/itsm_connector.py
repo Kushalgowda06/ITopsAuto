@@ -9,7 +9,7 @@ import requests
 from langchain_community.document_loaders import UnstructuredHTMLLoader
 
 SCRIPT_PATH = os.path.dirname(__file__)
-ROOT_PATH = SCRIPT_PATH.split('\\itsm')[0]
+ROOT_PATH = SCRIPT_PATH.split('/itsm')[0]
 
 sys.path.append(ROOT_PATH)
 
@@ -23,7 +23,7 @@ class CustomError(Exception):
 
 class ITSM:
     def __init__(self):
-        conf_f_path = ROOT_PATH + '\\config\\mim_conf.json'
+        conf_f_path = ROOT_PATH + '/config/mim_conf.json'
 
         # Read configuration file
         with open(conf_f_path) as conf_f:
@@ -35,7 +35,7 @@ class ITSM:
             self.snow_url = self.snow_url[:-1]
 
         # Initiate vault
-        vault_path = ROOT_PATH + '\\config\\.vault_token'
+        vault_path = ROOT_PATH + '/config/.vault_token'
 
         vault_file = open(vault_path, 'r')
         vault_token = vault_file.read().strip()
