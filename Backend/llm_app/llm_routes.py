@@ -5,14 +5,16 @@ from project.auth.auth_bearer import JWTBearer
 
 import os, sys, datetime, json, requests
 from typing import *
-from configuration import config
+#from configuration import config
+from .configuration import config
 from loguru import logger
 import uuid
 from fastapi.responses import JSONResponse
-from project.llm_app.llm_utils import *
-
+#from project.llm_app.llm_utils import *
+from .llm_utils import *
+from .model import *
 from fastapi import HTTPException
-from project.llm_app.model import *
+#from project.llm_app.model import *
 
 import traceback
 
