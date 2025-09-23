@@ -22,7 +22,7 @@ langchain_openai
 ag2[openai]
 sentence-transformers
 transformers
-psycopg2
+psycopg2-binary
 loguru
 vertexai
 langchain_google_vertexai
