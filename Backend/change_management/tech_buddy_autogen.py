@@ -5,7 +5,7 @@ import os
 import json
 import pprint
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
-from configuration import config
+g
 
 from PIL import Image
 from termcolor import colored
@@ -19,6 +19,7 @@ from autogen.agentchat.contrib.retrieve_user_proxy_agent import RetrieveUserProx
 from autogen.code_utils import DEFAULT_MODEL, UNKNOWN, content_str, execute_code, extract_code, infer_lang
 
 from vertexai.generative_models import HarmBlockThreshold, HarmCategory
+from llm_app.configuration import config
 
 
 #from vault import Vault
