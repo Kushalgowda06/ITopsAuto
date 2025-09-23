@@ -5,6 +5,7 @@ import os
 import json
 import pprint
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from configuration import config
 
 from PIL import Image
 from termcolor import colored
