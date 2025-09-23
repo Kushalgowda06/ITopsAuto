@@ -1,9 +1,7 @@
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any, Union
+from typing import Dict, Any, Union
 
-# ------------------------
-# Response Models
-# ------------------------
+# Responses
 class SuccessResponse(BaseModel):
     code: int
     output: Dict[str, Any]
@@ -14,9 +12,7 @@ class ErrorResponse(BaseModel):
 
 ResponseModel = Union[SuccessResponse, ErrorResponse]
 
-# ------------------------
-# LLM Request Models
-# ------------------------
+# LLM requests
 class LLMRequest(BaseModel):
     query: str
 
@@ -24,13 +20,7 @@ class LLMRequestWithContext(BaseModel):
     query: str
     context: dict
 
-# ------------------------
-# KB Article Models
-# ------------------------
+# Merge KB model (needed for merge_kb_articles route)
 class merge_kb_model(BaseModel):
-    kb_article_1: str
-    kb_article_2: str
-
-class refine_kb_model(BaseModel):
-    kb_article: str
-
+    article1: str
+    article2: str
