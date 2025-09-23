@@ -18,6 +18,6 @@ config={
       "openai_api_version":"2025-01-01-preview",
       "openai_azure_enpoint":"https://techbuddy-az-openai.cognitiveservices.azure.com/",
       "openai_model":"gpt-4o",
-      "api_type"="azure"
+      "api_type":"azure"
       }
 
