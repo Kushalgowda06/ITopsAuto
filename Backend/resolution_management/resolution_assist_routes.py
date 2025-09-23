@@ -9,8 +9,7 @@ from pydantic import Field, BaseModel
 from fastapi.responses import JSONResponse
 
 SCRIPT_PATH = os.path.dirname(__file__)
-
-ROOT_PATH = SCRIPT_PATH.split("/resolution_management")[0]
+ROOT_PATH = SCRIPT_PATH.split("/Backend")[0] + "/Backend/itsm"
 sys.path.append(ROOT_PATH)
 
 mim_conf_path = ROOT_PATH + "/config/mim_conf.json"
