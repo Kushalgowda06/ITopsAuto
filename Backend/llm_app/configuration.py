@@ -21,5 +21,3 @@ config={
       "api_type":"azure"
       }
 
-      }
-
