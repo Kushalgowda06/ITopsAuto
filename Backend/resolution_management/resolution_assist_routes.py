@@ -10,10 +10,10 @@ from fastapi.responses import JSONResponse
 
 SCRIPT_PATH = os.path.dirname(__file__)
 
-ROOT_PATH = SCRIPT_PATH.split("\\resolution_management")[0]
+ROOT_PATH = SCRIPT_PATH.split("/resolution_management")[0]
 sys.path.append(ROOT_PATH)
 
-mim_conf_path = ROOT_PATH + "\\config\\mim_conf.json"
+mim_conf_path = ROOT_PATH + "/config/mim_conf.json"
 mim_conf_file = open(mim_conf_path, 'r')
 mim_conf = json.load(mim_conf_file)
 mim_conf_file.close()
@@ -25,7 +25,7 @@ router = APIRouter()
 
 vault_url = mim_conf["vault_url"]
 
-vault_token_f = open(ROOT_PATH + "\\config\\.vault_token")
+vault_token_f = open(ROOT_PATH + "/config/.vault_token")
 vault_token = vault_token_f.read().strip()
 vault_token_f.close()
 
