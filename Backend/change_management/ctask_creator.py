@@ -13,18 +13,18 @@ from .vault import Vault
 import split_impl
 
 SCRIPT_PATH = os.path.dirname(__file__)
-ROOT_PATH = SCRIPT_PATH.split('\\service_now')[0]
+ROOT_PATH = SCRIPT_PATH.split('/service_now')[0]
 
 class ServiceNowChangeRequests:
      def __init__(self):
         # Collect servicenow configuration details
-        app_conf_path = SCRIPT_PATH + '\\config\\app_config.json'
+        app_conf_path = SCRIPT_PATH + '/config/app_config.json'
 
         app_conf_file = open(app_conf_path, 'r')
         app_conf = json.load(app_conf_file)
         app_conf_file.close()
         # Initiate vault
-        vault_path = SCRIPT_PATH + '\\config\\.vault_token'
+        vault_path = SCRIPT_PATH + '/config/.vault_token'
 
         vault_file = open(vault_path, 'r')
         vault_token = vault_file.read().strip()
