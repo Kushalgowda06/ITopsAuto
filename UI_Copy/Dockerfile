@@ -1,29 +1,21 @@
-# Use official Node image
-FROM node:20-alpine AS build
+# Frontend Dockerfile
+FROM node:20-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files and install dependencies
 COPY package.json package-lock.json ./
-
-# Install dependencies
 RUN npm install
 
-# Copy all frontend source code
+# Copy source code
 COPY . .
 
 # Build React app
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
-
-# Copy built files to nginx html folder
-COPY --from=build /app/build /usr/share/nginx/html
-
-# Expose port 80
+# Serve using Caddy (or Nginx)
+FROM caddy:2.8.0-alpine
+COPY --from=0 /app/build /usr/share/caddy
 EXPOSE 80
-
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["caddy", "file-server", "--root", "/usr/share/caddy", "--listen", ":80"]
