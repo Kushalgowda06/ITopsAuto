@@ -64,7 +64,7 @@ jobs:
       - name: Build & Push Frontend Docker Image
         run: |
           IMAGE_URI=361568250748.dkr.ecr.us-west-1.amazonaws.com/itopsfrontend:latest
-          docker build -t frontend -f "UI_Copy/Dockerfile" "UI_Copy/NewKnowledgeAssist"
+          docker build -t frontend -f "FrontEnd/frontend/Dockerfile" "FrontEnd/frontend/"
           docker tag frontend:latest $IMAGE_URI
           docker push $IMAGE_URI
 
