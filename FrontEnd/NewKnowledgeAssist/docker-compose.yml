@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  knowledge-assist:
+    build: .
+    ports:
+      - "80:80"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    networks:
+      - app-network
+
+  # Optional: Add a reverse proxy for SSL termination
+  # nginx-proxy:
+  #   image: nginx:alpine
+  #   ports:
+  #     - "443:443"
+  #   volumes:
+  #     - ./ssl:/etc/nginx/ssl
+  #     - ./nginx-proxy.conf:/etc/nginx/conf.d/default.conf
+  #   depends_on:
+  #     - knowledge-assist
+  #   networks:
+  #     - app-network
+
+networks:
+  app-network:
+    driver: bridge 
