@@ -16,7 +16,7 @@ services:
 
   frontend:
     build:
-      context: ./UI_Copy/NewKnowledgeAssist
+      context: ./UI_Copy
       dockerfile: Dockerfile
     container_name: frontend
     ports:
