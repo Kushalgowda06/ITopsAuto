@@ -16,7 +16,7 @@ services:
 
   frontend:
     build:
-      context: ./UI_Copy/frontend
+      context: ./FrontEnd/frontend
       dockerfile: Dockerfile
     container_name: frontend
     ports:
