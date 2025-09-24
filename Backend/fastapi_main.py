@@ -26,7 +26,8 @@ security = HTTPBasic()
 
 # Replace with your actual frontend origin
 origins = [
-"http://172.31.12.205:3000"
+"http://172.31.12.205:3000",
+"http://13.52.182.207:80"
 ]
 
 MAX_BYTES = 1024 * 1024 * 50  # 50MB limit
