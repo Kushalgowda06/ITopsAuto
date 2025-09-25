@@ -1,7 +1,12 @@
+// Frontend/frontend/src/api/customAxios.js
 import axios from 'axios';
+
+// Base URL from environment variable
+const BASE_URL = process.env.REACT_APP_API_URL;
 
 // API Client configuration
 export const apiClient = axios.create({
+  baseURL: BASE_URL,
   timeout: 900000,
   headers: {
     'Content-Type': 'application/json',
@@ -10,6 +15,7 @@ export const apiClient = axios.create({
 
 // FinOps Client configuration
 export const finopsClient = axios.create({
+  baseURL: BASE_URL, // use same backend, adjust if different
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -19,30 +25,24 @@ export const finopsClient = axios.create({
 // Request interceptors
 apiClient.interceptors.request.use(
   (config) => {
-    // Add auth token if available
     const token = localStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 finopsClient.interceptors.request.use(
   (config) => {
-    // Add auth token if available
     const token = localStorage.getItem('finopsToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response interceptors
@@ -50,7 +50,6 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
       localStorage.removeItem('authToken');
       window.location.href = '/login';
     }
@@ -62,9 +61,8 @@ finopsClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
       localStorage.removeItem('finopsToken');
     }
     return Promise.reject(error);
   }
-); 
+);
